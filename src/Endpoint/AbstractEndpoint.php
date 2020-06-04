@@ -61,12 +61,12 @@ abstract class AbstractEndpoint
     }
 
     /**
-     * @param int $id
+     * @param int|string $id
      * @param array $filters
      * @return AbstractResource
      * @throws ApiException
      */
-    protected function rest_read(int $id, array $filters)
+    protected function rest_read($id, array $filters)
     {
         $result = $this->client->performHttpCall(
             'GET',
@@ -118,18 +118,22 @@ abstract class AbstractEndpoint
     }
 
     /**
-     * @param int $id
+     * @param int|string $id
      * @param array $body
-     * @return AbstractResource
+     * @return AbstractResource|null
      * @throws ApiException
      */
-    protected function rest_delete(int $id, array $body)
+    protected function rest_delete($id, array $body = [])
     {
         $result = $this->client->performHttpCall(
             'DELETE',
             sprintf('%s/%s', $this->getResourcePath(), $id),
             $this->parseRequestBody($body)
         );
+
+        if ($result === null) {
+            return null;
+        }
 
         return $this->resourceFactory->createFromApiResult($result->data, $this->getResourceObject());
     }
@@ -208,11 +212,4 @@ abstract class AbstractEndpoint
      * @return AbstractResource
      */
     abstract protected function getResourceObject();
-
-    /**
-     * @param int $count
-     * @param object $links
-     * @return Collection
-     */
-    abstract protected function getResourceCollectionObject(int $count, object $links);
 }

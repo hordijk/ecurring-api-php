@@ -11,8 +11,11 @@ use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\RequestOptions;
 use Mooore\eCurring\Endpoint\CustomerEndpoint;
+use Mooore\eCurring\Endpoint\InvoiceEndpoint;
+use Mooore\eCurring\Endpoint\InvoiceLineEndpoint;
 use Mooore\eCurring\Endpoint\SubscriptionEndpoint;
 use Mooore\eCurring\Endpoint\SubscriptionPlanEndpoint;
+use Mooore\eCurring\Endpoint\TransactionEndpoint;
 use Mooore\eCurring\Exception\ApiException;
 use Mooore\eCurring\Exception\PhpVersionException;
 use Psr\Http\Message\ResponseInterface;
@@ -32,6 +35,11 @@ class eCurringHttpClient
      * eCurring HTTP Client Version.
      */
     private const VERSION = '0.1.0';
+
+    /**
+     * HTTP status code 204 - No content
+     */
+    const HTTP_NO_CONTENT = 204;
 
     /**
      * @var ClientInterface
@@ -57,6 +65,18 @@ class eCurringHttpClient
      * @var SubscriptionEndpoint
      */
     public $subscriptions;
+    /**
+     * @var InvoiceEndpoint
+     */
+    public $invoices;
+    /**
+     * @var InvoiceLineEndpoint
+     */
+    public $invoiceLines;
+    /**
+     * @var TransactionEndpoint
+     */
+    public $transactions;
 
     public function __construct(ClientInterface $httpClient = null)
     {
@@ -67,6 +87,9 @@ class eCurringHttpClient
         $this->subscriptionPlans = new SubscriptionPlanEndpoint($this);
         $this->customers = new CustomerEndpoint($this);
         $this->subscriptions = new SubscriptionEndpoint($this);
+        $this->invoices = new InvoiceEndpoint($this);
+        $this->invoiceLines = new InvoiceLineEndpoint($this);
+        $this->transactions = new TransactionEndpoint($this);
         $this->assertPhpVersion();
     }
 
@@ -119,7 +142,7 @@ class eCurringHttpClient
             throw ApiException::createFromGuzzleException($e);
         }
 
-        if (empty($response)) {
+        if (!$response) {
             throw new ApiException('No API response received.');
         }
 
@@ -128,13 +151,18 @@ class eCurringHttpClient
 
     /**
      * @param ResponseInterface $response
-     * @return object
+     * @return object|null
      * @throws ApiException
      */
     private function parseResponseBody(ResponseInterface $response)
     {
         $body = (string) $response->getBody();
         if (empty($body)) {
+            // Some operation return a 204 response and MUST NOT include a message-body, for example
+            // some DELETE operations return a 204 response.
+            if ($response->getStatusCode() === self::HTTP_NO_CONTENT) {
+                return null;
+            }
             throw new ApiException('Empty response body.');
         }
 

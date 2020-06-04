@@ -156,6 +156,16 @@ class Subscription extends AbstractResource
         return $this->update(['status' => self::STATUS_CANCELLED]);
     }
 
+    public function createInvoice(array $attributes = []): Invoice
+    {
+        return $this->client->invoices->createForSubscription($this->id,  $attributes);
+    }
+
+    public function createTransaction(float $amount, array $attributes = []): Invoice
+    {
+        return $this->client->transactions->create($this->id, $amount, $attributes);
+    }
+
     public function isActive(): bool
     {
         return $this->status === self::STATUS_ACTIVE;
